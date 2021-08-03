@@ -1,0 +1,35 @@
+[package]
+name = "hecs_rapier"
+version = "0.10.2"
+authors = [
+    "Tomasz Sterna <tomasz@sterna.link>",
+    "Sébastien Crozet <developer@crozet.re>"
+]
+description = "Rapier2d integration for hecs ECS"
+repository = "https://github.com/smokku/hecs_rapier"
+readme = "README.md"
+keywords = ["physics", "dynamics", "rigid", "real-time"]
+license = "Apache-2.0"
+edition = "2018"
+
+[dependencies]
+hecs = { version = "0.6", default-features = false, features = ["macros"] }
+resources = "1.1"
+# Don't enable the default features because we don't need the ColliderSet/RigidBodySet
+rapier2d = { version = "^0.10.1", default-features = false, features = [
+    "dim2",
+    "f32"
+] }
+
+[profile.release]
+codegen-units = 1
+
+[patch.crates-io]
+hecs = { git = "https://github.com/smokku/hecs.git" }
+#nalgebra = { path = "../nalgebra" }
+#parry2d = { path = "../parry/build/parry2d" }
+#parry3d = { path = "../parry/build/parry3d" }
+#rapier2d = { path = "../rapier/build/rapier2d" }
+#rapier3d = { path = "../rapier/build/rapier3d" }
+#rapier2d = { git = "https://github.com/dimforge/rapier" }
+#rapier3d = { git = "https://github.com/dimforge/rapier" }
