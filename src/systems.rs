@@ -23,7 +23,7 @@ pub fn init(resources: &mut Resources) {
 /// System responsible for performing one timestep of the physics world.
 pub fn step_world(world: &mut World, resources: &Resources) {
     // println!("step");
-    use std::mem::replace;
+    use std::mem::take;
 
     let gravity = vector![0.0, 9.81];
 
@@ -64,9 +64,9 @@ pub fn step_world(world: &mut World, resources: &Resources) {
         &mut narrow_phase,
         &mut rigid_body_components_set,
         &mut collider_components_set,
-        &mut replace(&mut modifs_tracker.modified_bodies, vec![]),
-        &mut replace(&mut modifs_tracker.modified_colliders, vec![]),
-        &mut replace(&mut modifs_tracker.removed_colliders, vec![]),
+        &mut take(&mut modifs_tracker.modified_bodies),
+        &mut take(&mut modifs_tracker.modified_colliders),
+        &mut take(&mut modifs_tracker.removed_colliders),
         &mut joint_set,
         &mut ccd_solver,
         &physics_hooks,
