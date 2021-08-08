@@ -1,55 +1,36 @@
 use super::*;
 use crate::resources::ModificationTracker;
-use ::resources::Resources;
 use hecs::{Added, Without, World};
 
-pub fn init(resources: &mut Resources) {
-    resources.insert(PhysicsPipeline::new());
-    // resources.insert(QueryPipeline::new());
-    // resources.insert(RapierConfiguration::default());
-    resources.insert(IntegrationParameters::default());
-    resources.insert(BroadPhase::new());
-    resources.insert(NarrowPhase::new());
-    resources.insert(IslandManager::new());
-    resources.insert(JointSet::new());
-    resources.insert(CCDSolver::new());
-    // resources.insert(Events::<IntersectionEvent>::default());
-    // resources.insert(Events::<ContactEvent>::default());
-    // resources.insert(SimulationToRenderTime::default());
-    // resources.insert(JointsEntityMap::default());
-    resources.insert(ModificationTracker::default());
-}
-
 /// System responsible for performing one timestep of the physics world.
-pub fn step_world(world: &mut World, resources: &Resources) {
+#[allow(clippy::too_many_arguments)]
+pub fn step_world(
+    world: &mut World,
+    gravity: &Vector<Real>,
+    integration_parameters: &IntegrationParameters,
+    physics_pipeline: &mut PhysicsPipeline,
+    modification_tracker: &mut ModificationTracker,
+    island_manager: &mut IslandManager,
+    broad_phase: &mut BroadPhase,
+    narrow_phase: &mut NarrowPhase,
+    joint_set: &mut JointSet,
+    ccd_solver: &mut CCDSolver,
+    // physics_hooks: &dyn PhysicsHooks<RigidBodyComponentsSet, ColliderComponentsSet>,
+    event_handler: &dyn EventHandler,
+) {
     // println!("step");
     use std::mem::take;
 
-    let gravity = vector![0.0, 9.81];
-
-    // let configuration = resources.get::<RapierConfiguration>().unwrap();
-    let integration_parameters = resources.get::<IntegrationParameters>().unwrap();
-    let mut modifs_tracker = resources.get_mut::<ModificationTracker>().unwrap();
-
-    let mut physics_pipeline = resources.get_mut::<PhysicsPipeline>().unwrap();
-    // let mut query_pipeline = resources.get_mut::<QueryPipeline>().unwrap();
-    let mut island_manager = resources.get_mut::<IslandManager>().unwrap();
-    let mut broad_phase = resources.get_mut::<BroadPhase>().unwrap();
-    let mut narrow_phase = resources.get_mut::<NarrowPhase>().unwrap();
-    let mut ccd_solver = resources.get_mut::<CCDSolver>().unwrap();
-    let mut joint_set = resources.get_mut::<JointSet>().unwrap();
-    // let mut joints_entity_map = resources.get_mut::<JointsEntityMap>().unwrap();
     let physics_hooks = ();
-    let event_handler = ();
 
-    modifs_tracker.detect_removals(world);
-    modifs_tracker.detect_modifications(world);
+    modification_tracker.detect_removals(world);
+    modification_tracker.detect_modifications(world);
 
     let mut rigid_body_components_set = RigidBodyComponentsSet(world);
     let mut collider_components_set = ColliderComponentsSet(world);
 
-    let cleanup_entities = modifs_tracker.propagate_removals(
-        &mut island_manager,
+    let cleanup_entities = modification_tracker.propagate_removals(
+        island_manager,
         &mut rigid_body_components_set,
         // &mut joints,
         // &mut joints_entity_map,
@@ -57,27 +38,27 @@ pub fn step_world(world: &mut World, resources: &Resources) {
     island_manager.cleanup_removed_rigid_bodies(&mut rigid_body_components_set);
 
     physics_pipeline.step_generic(
-        &gravity,
-        &integration_parameters,
-        &mut island_manager,
-        &mut broad_phase,
-        &mut narrow_phase,
+        gravity,
+        integration_parameters,
+        island_manager,
+        broad_phase,
+        narrow_phase,
         &mut rigid_body_components_set,
         &mut collider_components_set,
-        &mut take(&mut modifs_tracker.modified_bodies),
-        &mut take(&mut modifs_tracker.modified_colliders),
-        &mut take(&mut modifs_tracker.removed_colliders),
-        &mut joint_set,
-        &mut ccd_solver,
+        &mut take(&mut modification_tracker.modified_bodies),
+        &mut take(&mut modification_tracker.modified_colliders),
+        &mut take(&mut modification_tracker.removed_colliders),
+        joint_set,
+        ccd_solver,
         &physics_hooks,
-        &event_handler,
+        event_handler,
     );
 
     for entity in cleanup_entities {
         let _ = world.remove::<ColliderBundle>(entity);
         let _ = world.remove_one::<ColliderParent>(entity);
     }
-    modifs_tracker.clear_modified_and_removed();
+    modification_tracker.clear_modified_and_removed();
 }
 
 /// System responsible for creating a Rapier rigid-body and collider from their
@@ -119,9 +100,11 @@ pub fn attach_bodies_and_colliders(world: &mut World) {
 
 /// System responsible for creating a Rapier rigid-body and collider from their
 /// builder resources.
-pub fn finalize_collider_attach_to_bodies(world: &mut World, resources: &Resources) {
+pub fn finalize_collider_attach_to_bodies(
+    world: &mut World,
+    modification_tracker: &mut ModificationTracker,
+) {
     // println!("finalize_collider_attach_to_bodies");
-    let mut modif_tracker = resources.get_mut::<ModificationTracker>().unwrap();
 
     for (
         collider_entity,
@@ -169,15 +152,15 @@ pub fn finalize_collider_attach_to_bodies(world: &mut World, resources: &Resourc
             //       `.attach_collider` will set the `MODIFIED` flag.
 
             if !rb_changes.contains(RigidBodyChanges::MODIFIED) {
-                modif_tracker.modified_bodies.push(co_parent.handle);
+                modification_tracker.modified_bodies.push(co_parent.handle);
             }
 
-            modif_tracker
+            modification_tracker
                 .body_colliders
                 .entry(co_parent.handle)
                 .or_insert_with(Vec::new)
                 .push(collider_entity.handle());
-            modif_tracker
+            modification_tracker
                 .colliders_parent
                 .insert(collider_entity.handle(), co_parent.handle);
 
@@ -200,8 +183,6 @@ pub fn finalize_collider_attach_to_bodies(world: &mut World, resources: &Resourc
 
 /// System responsible for collecting the entities with removed rigid-bodies, colliders,
 /// or joints.
-pub fn collect_removals(world: &mut World, resources: &Resources) {
-    let mut modification_tracker = resources.get_mut::<ModificationTracker>().unwrap();
-
+pub fn collect_removals(world: &mut World, modification_tracker: &mut ModificationTracker) {
     modification_tracker.detect_removals(world);
 }

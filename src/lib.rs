@@ -1,5 +1,5 @@
 use hecs::{Bundle, Entity, Query, World};
-use rapier2d::{
+pub use rapier2d::{
     data::{ComponentSet, ComponentSetMut, ComponentSetOption, Index},
     prelude::*,
 };
@@ -7,6 +7,8 @@ use std::ops::{Deref, DerefMut};
 
 pub mod resources;
 pub mod systems;
+pub use resources::*;
+pub use systems::*;
 
 pub trait IntoHandle<H> {
     fn handle(self) -> H;
