@@ -2,6 +2,11 @@ use super::*;
 use crate::resources::ModificationTracker;
 use hecs::{Added, Without, World};
 
+pub fn prepare_step(world: &mut World, modification_tracker: &mut ModificationTracker) {
+    modification_tracker.detect_removals(world);
+    modification_tracker.detect_modifications(world);
+}
+
 /// System responsible for performing one timestep of the physics world.
 #[allow(clippy::too_many_arguments)]
 pub fn step_world(
@@ -22,9 +27,6 @@ pub fn step_world(
     use std::mem::take;
 
     let physics_hooks = ();
-
-    modification_tracker.detect_removals(world);
-    modification_tracker.detect_modifications(world);
 
     let mut rigid_body_components_set = RigidBodyComponentsSet(world);
     let mut collider_components_set = ColliderComponentsSet(world);

@@ -34,6 +34,7 @@ while running {
         physics::finalize_collider_attach_to_bodies(&mut world, &mut modification_tracker);
 
 
+        physics::prepare_step(&mut world, &mut modification_tracker);
         if time_to_step {
 
             physics::step_world(
