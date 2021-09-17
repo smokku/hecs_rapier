@@ -21,7 +21,7 @@ pub trait IntoEntity {
 impl IntoHandle<Index> for Entity {
     #[inline]
     fn handle(self) -> Index {
-        let bits = self.to_bits();
+        let bits = self.to_bits().get();
         Index::from_raw_parts(bits as u32, (bits >> 32) as u32)
     }
 }
@@ -31,14 +31,14 @@ impl IntoEntity for Index {
     fn entity(self) -> Entity {
         let (id, gen) = self.into_raw_parts();
         let bits = u64::from(gen) << 32 | u64::from(id);
-        Entity::from_bits(bits)
+        Entity::from_bits(bits).unwrap()
     }
 }
 
 impl IntoHandle<RigidBodyHandle> for Entity {
     #[inline]
     fn handle(self) -> RigidBodyHandle {
-        let bits = self.to_bits();
+        let bits = self.to_bits().get();
         RigidBodyHandle::from_raw_parts(bits as u32, (bits >> 32) as u32)
     }
 }
@@ -53,7 +53,7 @@ impl IntoEntity for RigidBodyHandle {
 impl IntoHandle<ColliderHandle> for Entity {
     #[inline]
     fn handle(self) -> ColliderHandle {
-        let bits = self.to_bits();
+        let bits = self.to_bits().get();
         ColliderHandle::from_raw_parts(bits as u32, (bits >> 32) as u32)
     }
 }
