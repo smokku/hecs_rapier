@@ -5,8 +5,10 @@ pub use rapier2d::{
 };
 use std::ops::{Deref, DerefMut};
 
+pub mod components;
 pub mod resources;
 pub mod systems;
+pub use components::*;
 pub use resources::*;
 pub use systems::*;
 
@@ -60,6 +62,20 @@ impl IntoHandle<ColliderHandle> for Entity {
 
 impl IntoEntity for ColliderHandle {
     #[inline]
+    fn entity(self) -> Entity {
+        self.0.entity()
+    }
+}
+
+impl IntoHandle<JointHandle> for Entity {
+    #[inline]
+    fn handle(self) -> JointHandle {
+        let bits = self.to_bits().get();
+        JointHandle::from_raw_parts(bits as u32, (bits >> 32) as u32)
+    }
+}
+
+impl IntoEntity for JointHandle {
     fn entity(self) -> Entity {
         self.0.entity()
     }

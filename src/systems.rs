@@ -19,6 +19,7 @@ pub fn step_world(
     broad_phase: &mut BroadPhase,
     narrow_phase: &mut NarrowPhase,
     joint_set: &mut JointSet,
+    joints_entity_map: &mut JointsEntityMap,
     ccd_solver: &mut CCDSolver,
     // physics_hooks: &dyn PhysicsHooks<RigidBodyComponentsSet, ColliderComponentsSet>,
     event_handler: &dyn EventHandler,
@@ -34,8 +35,8 @@ pub fn step_world(
     let cleanup_entities = modification_tracker.propagate_removals(
         island_manager,
         &mut rigid_body_components_set,
-        // &mut joints,
-        // &mut joints_entity_map,
+        joint_set,
+        joints_entity_map,
     );
     island_manager.cleanup_removed_rigid_bodies(&mut rigid_body_components_set);
 
@@ -180,6 +181,38 @@ pub fn finalize_collider_attach_to_bodies(
                 co_mprops,
             );
         }
+    }
+}
+
+/// System responsible for creating Rapier joints from their builder resources.
+pub fn create_joints_system(
+    world: &mut World,
+    joints: &mut JointSet,
+    joints_entity_map: &mut JointsEntityMap,
+) {
+    let mut changes = Vec::new();
+
+    for (entity, joint) in world.query::<&JointBuilderComponent>().iter() {
+        // Make sure the rigid-bodies the joint it attached to exist.
+        if world.get::<RigidBodyIds>(joint.entity1).is_err()
+            || world.get::<RigidBodyIds>(joint.entity2).is_err()
+        {
+            continue;
+        }
+
+        let handle = joints.insert(joint.entity1.handle(), joint.entity2.handle(), joint.params);
+        changes.push((handle, entity, (joint.entity1, joint.entity2)));
+    }
+
+    for (handle, entity, joint_entity) in changes.drain(..) {
+        world
+            .insert_one(
+                entity,
+                JointHandleComponent::new(handle, joint_entity.0, joint_entity.1),
+            )
+            .unwrap();
+        world.remove_one::<JointBuilderComponent>(entity).unwrap();
+        joints_entity_map.0.insert(entity, handle);
     }
 }
 

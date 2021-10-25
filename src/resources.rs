@@ -2,6 +2,10 @@ use super::*;
 use hecs::{Changed, Entity};
 use std::collections::HashMap;
 
+/// HashMaps of Entity to Rapier handles
+#[derive(Default)]
+pub struct JointsEntityMap(pub(crate) HashMap<Entity, JointHandle>);
+
 pub struct ModificationTracker {
     pub(crate) modified_bodies: Vec<RigidBodyHandle>,
     pub(crate) modified_colliders: Vec<ColliderHandle>,
@@ -153,20 +157,20 @@ impl ModificationTracker {
                 .iter()
                 .map(|e| IntoHandle::<ColliderHandle>::handle(*e)),
         );
-        // self.removed_joints.extend(
-        //     world
-        //         .removed::<JointHandleComponent>()
-        //         .iter()
-        //         .map(|e| IntoHandle::<JointHandle>::handle(*e)),
-        // );
+        self.removed_joints.extend(
+            world
+                .removed::<JointHandleComponent>()
+                .iter()
+                .map(|e| IntoHandle::<JointHandle>::handle(*e)),
+        );
     }
 
     pub fn propagate_removals<Bodies>(
         &mut self,
-        _islands: &mut IslandManager,
+        islands: &mut IslandManager,
         bodies: &mut Bodies,
-        // joints: &mut JointSet,
-        // joints_map: &mut JointsEntityMap,
+        joints: &mut JointSet,
+        joints_map: &mut JointsEntityMap,
     ) -> Vec<Entity>
     where
         Bodies: ComponentSetMut<RigidBodyChanges>
@@ -184,9 +188,9 @@ impl ModificationTracker {
                 }
             }
 
-            // let mut removed_joints =
-            //     joints.remove_joints_attached_to_rigid_body(*removed_body, islands, bodies);
-            // self.removed_joints.append(&mut removed_joints);
+            let mut removed_joints =
+                joints.remove_joints_attached_to_rigid_body(*removed_body, islands, bodies);
+            self.removed_joints.append(&mut removed_joints);
         }
 
         for removed_collider in self.removed_colliders.iter() {
@@ -216,12 +220,12 @@ impl ModificationTracker {
             }
         }
 
-        // for removed_joints in self.removed_joints.iter() {
-        //     let joint_handle = joints_map.0.remove(&removed_joints.entity());
-        //     if let Some(joint_handle) = joint_handle {
-        //         joints.remove(joint_handle, islands, bodies, true);
-        //     }
-        // }
+        for removed_joints in self.removed_joints.iter() {
+            let joint_handle = joints_map.0.remove(&removed_joints.entity());
+            if let Some(joint_handle) = joint_handle {
+                joints.remove(joint_handle, islands, bodies, true);
+            }
+        }
 
         cleanup_entities
     }
