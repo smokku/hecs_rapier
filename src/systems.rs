@@ -1,5 +1,5 @@
 use super::*;
-use crate::resources::ModificationTracker;
+use crate::resources::{ModificationTracker, PhysicsHooksWithWorld, PhysicsHooksWithWorldInstance};
 use hecs::{Added, Without, World};
 
 pub fn prepare_step(world: &mut World, modification_tracker: &mut ModificationTracker) {
@@ -21,13 +21,11 @@ pub fn step_world(
     joint_set: &mut JointSet,
     joints_entity_map: &mut JointsEntityMap,
     ccd_solver: &mut CCDSolver,
-    // physics_hooks: &dyn PhysicsHooks<RigidBodyComponentsSet, ColliderComponentsSet>,
+    physics_hooks: &dyn PhysicsHooksWithWorld,
     event_handler: &dyn EventHandler,
 ) {
     // println!("step");
     use std::mem::take;
-
-    let physics_hooks = ();
 
     let mut rigid_body_components_set = RigidBodyComponentsSet(world);
     let mut collider_components_set = ColliderComponentsSet(world);
@@ -39,6 +37,11 @@ pub fn step_world(
         joints_entity_map,
     );
     island_manager.cleanup_removed_rigid_bodies(&mut rigid_body_components_set);
+
+    let physics_hooks = PhysicsHooksWithWorldInstance {
+        world,
+        hooks: physics_hooks,
+    };
 
     physics_pipeline.step_generic(
         gravity,
@@ -185,7 +188,7 @@ pub fn finalize_collider_attach_to_bodies(
 }
 
 /// System responsible for creating Rapier joints from their builder resources.
-pub fn create_joints_system(
+pub fn create_joints(
     world: &mut World,
     joints: &mut JointSet,
     joints_entity_map: &mut JointsEntityMap,

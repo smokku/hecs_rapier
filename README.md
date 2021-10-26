@@ -5,7 +5,6 @@ Port of `bevy_rapier2d` to hecs ECS.
 ## WARNING
 
 - This code requires hecs fork with entity change tracking: <https://github.com/smokku/hecs.git>
-- Unfinished. physics_hooks are not yet ported.
 
 ## Example
 
@@ -31,12 +30,13 @@ let mut modification_tracker = physics::ModificationTracker::default();
 
 while running {
         physics::attach_bodies_and_colliders(&mut world);
-        physics::create_joints_system(&mut self.world, &mut joint_set, &mut joints_entity_map);
+        physics::create_joints(&mut self.world, &mut joint_set, &mut joints_entity_map);
         physics::finalize_collider_attach_to_bodies(&mut world, &mut modification_tracker);
 
 
         physics::prepare_step(&mut world, &mut modification_tracker);
-        if time_to_step {
+
+        while need_to_step {
 
             physics::step_world(
                 &mut world,

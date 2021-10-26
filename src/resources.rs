@@ -230,3 +230,92 @@ impl ModificationTracker {
         cleanup_entities
     }
 }
+
+pub trait PhysicsHooksWithWorld: Send + Sync {
+    fn filter_contact_pair(
+        &self,
+        _context: &PairFilterContext<RigidBodyComponentsSet, ColliderComponentsSet>,
+        _world: &World,
+    ) -> Option<SolverFlags> {
+        None
+    }
+
+    fn filter_intersection_pair(
+        &self,
+        _context: &PairFilterContext<RigidBodyComponentsSet, ColliderComponentsSet>,
+        _world: &World,
+    ) -> bool {
+        false
+    }
+
+    fn modify_solver_contacts(
+        &self,
+        _context: &mut ContactModificationContext<RigidBodyComponentsSet, ColliderComponentsSet>,
+        _world: &World,
+    ) {
+    }
+}
+
+impl<T> PhysicsHooksWithWorld for T
+where
+    T: for<'a, 'b> PhysicsHooks<RigidBodyComponentsSet<'a>, ColliderComponentsSet<'b>>
+        + Send
+        + Sync,
+{
+    fn filter_contact_pair(
+        &self,
+        context: &PairFilterContext<RigidBodyComponentsSet, ColliderComponentsSet>,
+        _world: &World,
+    ) -> Option<SolverFlags> {
+        PhysicsHooks::filter_contact_pair(self, context)
+    }
+
+    fn filter_intersection_pair(
+        &self,
+        context: &PairFilterContext<RigidBodyComponentsSet, ColliderComponentsSet>,
+        _world: &World,
+    ) -> bool {
+        PhysicsHooks::filter_intersection_pair(self, context)
+    }
+
+    fn modify_solver_contacts(
+        &self,
+        context: &mut ContactModificationContext<RigidBodyComponentsSet, ColliderComponentsSet>,
+        _world: &World,
+    ) {
+        PhysicsHooks::modify_solver_contacts(self, context)
+    }
+}
+
+pub(crate) struct PhysicsHooksWithWorldInstance<'a, 'b> {
+    pub world: &'a World,
+    pub hooks: &'b dyn PhysicsHooksWithWorld,
+}
+
+impl<'aa, 'bb, 'a, 'b> PhysicsHooks<RigidBodyComponentsSet<'a>, ColliderComponentsSet<'b>>
+    for PhysicsHooksWithWorldInstance<'aa, 'bb>
+{
+    fn filter_contact_pair(
+        &self,
+        context: &PairFilterContext<RigidBodyComponentsSet<'a>, ColliderComponentsSet<'b>>,
+    ) -> Option<SolverFlags> {
+        self.hooks.filter_contact_pair(context, self.world)
+    }
+
+    fn filter_intersection_pair(
+        &self,
+        context: &PairFilterContext<RigidBodyComponentsSet<'a>, ColliderComponentsSet<'b>>,
+    ) -> bool {
+        self.hooks.filter_intersection_pair(context, self.world)
+    }
+
+    fn modify_solver_contacts(
+        &self,
+        context: &mut ContactModificationContext<
+            RigidBodyComponentsSet<'a>,
+            ColliderComponentsSet<'b>,
+        >,
+    ) {
+        self.hooks.modify_solver_contacts(context, self.world)
+    }
+}
