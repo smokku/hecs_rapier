@@ -1,6 +1,7 @@
 use super::*;
 use crate::resources::{ModificationTracker, PhysicsHooksWithWorld, PhysicsHooksWithWorldInstance};
 use hecs::{Added, Without, World};
+use std::mem::take;
 
 pub fn prepare_step(world: &mut World, modification_tracker: &mut ModificationTracker) {
     modification_tracker.detect_removals(world);
@@ -24,9 +25,6 @@ pub fn step_world(
     physics_hooks: &dyn PhysicsHooksWithWorld,
     event_handler: &dyn EventHandler,
 ) {
-    // println!("step");
-    use std::mem::take;
-
     let mut rigid_body_components_set = RigidBodyComponentsSet(world);
     let mut collider_components_set = ColliderComponentsSet(world);
 
@@ -70,7 +68,6 @@ pub fn step_world(
 /// System responsible for creating a Rapier rigid-body and collider from their
 /// builder resources.
 pub fn attach_bodies_and_colliders(world: &mut World) {
-    // println!("attach_bodies_and_colliders");
     let mut co_parents = Vec::new();
     'outer: for (collider_entity, co_pos) in world
         .query::<Without<
@@ -110,8 +107,6 @@ pub fn finalize_collider_attach_to_bodies(
     world: &mut World,
     modification_tracker: &mut ModificationTracker,
 ) {
-    // println!("finalize_collider_attach_to_bodies");
-
     for (
         collider_entity,
         (

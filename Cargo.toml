@@ -1,6 +1,6 @@
 [package]
 name = "hecs_rapier"
-version = "0.10.2"
+version = "0.11.0"
 authors = [
     "Tomasz Sterna <tomasz@sterna.link>",
     "Sébastien Crozet <developer@crozet.re>"
@@ -15,10 +15,7 @@ edition = "2018"
 [dependencies]
 hecs = { version = "0.6", default-features = false, features = ["macros"] }
 # Don't enable the default features because we don't need the ColliderSet/RigidBodySet
-rapier2d = { version = "^0.11.0", default-features = false, features = [
-    "dim2",
-    "f32"
-] }
+rapier2d = { version = "0.11", default-features = false, features = ["dim2", "f32"] }
 
 [profile.release]
 codegen-units = 1

@@ -109,7 +109,6 @@ macro_rules! impl_component_set_option(
                         let data = data.deref() as *const $T;
                         &*data
                     });
-                // println!("ComponentSetOption get {:?} {} : {:?}", handle, std::any::type_name::<$T>(), ret);
                 ret
             }
         }
@@ -120,13 +119,11 @@ macro_rules! impl_component_set(
         impl<'a> ComponentSet<$T> for $ComponentsSet<'a> {
             #[inline(always)]
             fn size_hint(&self) -> usize {
-                // println!("ComponentSet size_hint");
                 0
             }
 
             #[inline(always)]
             fn for_each(&self, mut f: impl FnMut(Index, &$T)) {
-                // println!("ComponentSet for_each");
                 self.0
                     .query::<&$T>()
                     .iter()
@@ -140,7 +137,6 @@ macro_rules! impl_component_set_mut(
         impl<'a> ComponentSetMut<$T> for $ComponentsSet<'a> {
             #[inline(always)]
             fn set_internal(&mut self, handle: Index, val: $T) {
-                // println!("ComponentSetMut set_internal {:?} {} : {:?}", handle, std::any::type_name::<$T>(), val);
                 let _ = self.0
                     .get_mut::<$T>(handle.entity())
                     .map(|mut data| *data = val);
@@ -152,7 +148,6 @@ macro_rules! impl_component_set_mut(
                 handle: Index,
                 f: impl FnOnce(&mut $T) -> Result,
             ) -> Option<Result> {
-                // println!("ComponentSetMut map_mut_internal");
                 self.0
                     .get_mut::<$T>(handle.entity())
                     .map(|mut data| f(&mut data))
@@ -163,52 +158,6 @@ macro_rules! impl_component_set_mut(
 );
 
 pub struct RigidBodyComponentsSet<'a>(&'a World);
-
-// impl<'a> ComponentSetOption<RigidBodyPosition> for RigidBodyComponentsSet<'a> {
-//     fn get(&self, handle: Index) -> Option<&RigidBodyPosition> {
-//         self.0
-//             .get::<RigidBodyPosition>(handle.entity())
-//             .ok()
-//             .map(|data| unsafe {
-//                 let data = data.deref() as *const RigidBodyPosition;
-//                 &*data
-//             })
-//     }
-// }
-// impl<'a> ComponentSet<RigidBodyPosition> for RigidBodyComponentsSet<'a> {
-//     #[inline(always)]
-//     fn size_hint(&self) -> usize {
-//         0
-//     }
-
-//     #[inline(always)]
-//     fn for_each(&self, mut f: impl FnMut(Index, &RigidBodyPosition)) {
-//         self.0
-//             .query::<&RigidBodyPosition>()
-//             .iter()
-//             .for_each(|(entity, data)| f(entity.handle(), data));
-//     }
-// }
-// impl<'a> ComponentSetMut<RigidBodyPosition> for RigidBodyComponentsSet<'a> {
-//     #[inline(always)]
-//     fn set_internal(&mut self, handle: Index, val: RigidBodyPosition) {
-//         self.0
-//             .get_mut::<RigidBodyPosition>(handle.entity())
-//             .map(|mut data| *data = val);
-//     }
-
-//     #[inline(always)]
-//     fn map_mut_internal<Result>(
-//         &mut self,
-//         handle: Index,
-//         f: impl FnOnce(&mut RigidBodyPosition) -> Result,
-//     ) -> Option<Result> {
-//         self.0
-//             .get_mut::<RigidBodyPosition>(handle.entity())
-//             .map(|mut data| f(&mut data))
-//             .ok()
-//     }
-// }
 
 impl_component_set_option!(RigidBodyComponentsSet, RigidBodyPosition);
 impl_component_set!(RigidBodyComponentsSet, RigidBodyPosition);
